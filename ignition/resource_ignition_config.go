@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
-	"github.com/coreos/ignition/v2/config/v3_1/types"
+	"github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/ignition/v2/config/validate"
 )
 
@@ -294,6 +294,20 @@ func buildStorage(d *schema.ResourceData) (types.Storage, error) {
 		}
 
 		storage.Links = append(storage.Links, f)
+	}
+
+	for _, luk := range d.Get("luks").([]interface{}) {
+		if luk == nil {
+			continue
+		}
+
+		f := types.Luks{}
+		err := json.Unmarshal([]byte(luk.(string)), &f)
+		if err != nil {
+			return storage, errors.Wrap(err, "No valid JSON found, make sure you're using .rendered and not .id")
+		}
+
+		storage.Luks = append(storage.Luks, f)
 	}
 
 	return storage, nil

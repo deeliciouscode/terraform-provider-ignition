@@ -22,6 +22,7 @@ func Provider() terraform.ResourceProvider {
 			"ignition_file":         dataSourceFile(),
 			"ignition_directory":    dataSourceDirectory(),
 			"ignition_link":         dataSourceLink(),
+			"ignition_luks":         dataSourceLuks(),
 			"ignition_systemd_unit": dataSourceSystemdUnit(),
 			"ignition_user":         dataSourceUser(),
 			"ignition_group":        dataSourceGroup(),
