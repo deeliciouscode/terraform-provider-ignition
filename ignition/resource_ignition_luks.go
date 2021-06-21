@@ -88,7 +88,7 @@ func dataSourceLuks() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"wipeVolume": {
+			"wipe_volume": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
@@ -130,7 +130,7 @@ func dataSourceLuks() *schema.Resource {
 							ForceNew: true,
 						},
 						"custom": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: true,
 							MaxItems: 1,
@@ -146,7 +146,7 @@ func dataSourceLuks() *schema.Resource {
 										Optional: true,
 										ForceNew: true,
 									},
-									"needsNetwork": {
+									"needs_network": {
 										Type:     schema.TypeBool,
 										Optional: true,
 										ForceNew: true,
@@ -207,7 +207,7 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 		luks.UUID = &suuid
 	}
 
-	wipeVol, hasWipeVol := d.GetOk("wipeVolume")
+	wipeVol, hasWipeVol := d.GetOk("wipe_volume")
 	if hasWipeVol {
 		bwipeVol := wipeVol.(bool)
 		luks.WipeVolume = &bwipeVol
@@ -291,7 +291,7 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 				Config: d.Get("clevis.0.config").(string),
 			}
 
-			needsNetwork, hasNeedsNetwork := d.GetOk("clevis.0.needsNetwork")
+			needsNetwork, hasNeedsNetwork := d.GetOk("clevis.0.needs_network")
 			if hasNeedsNetwork {
 				bneedsNetwork := needsNetwork.(bool)
 				custom.NeedsNetwork = &bneedsNetwork
