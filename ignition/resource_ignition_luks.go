@@ -332,8 +332,9 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 		luks.Clevis = &clevis
 	}
 
-	for _, value := range d.Get("options").([]interface{}) {
-		luks.Options = append(luks.Options, value.(types.LuksOption))
+	options, hasOptions := d.GetOk("options")
+	if hasOptions {
+		luks.Options = castSliceInterfaceLuksOption(options.([]interface{}))
 	}
 
 	if err := handleReport(luks.Validate(path.ContextPath{})); err != nil {
@@ -350,4 +351,17 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 	}
 
 	return hash(string(b)), nil
+}
+
+func castSliceInterfaceLuksOption(i []interface{}) []types.LuksOption {
+	var o []types.LuksOption
+	for _, value := range i {
+		if value == nil {
+			continue
+		}
+
+		o = append(o, types.LuksOption(value.(string)))
+	}
+
+	return o
 }
