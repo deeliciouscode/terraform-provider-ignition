@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
+// TODO: add http_headers for other ressources too!
 func dataSourceLuks() *schema.Resource {
 	return &schema.Resource{
 		Exists: resourceLuksExists,
@@ -68,6 +69,25 @@ func dataSourceLuks() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+						},
+						"http_headers": {
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:     schema.TypeString,
+										Required: true,
+										ForceNew: true,
+									},
+									"value": {
+										Type:     schema.TypeString,
+										Optional: true,
+										ForceNew: true,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -215,42 +235,51 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 
 	_, hasContent := d.GetOk("content")
 	_, hasSource := d.GetOk("source")
+
 	if hasContent && hasSource {
 		return "", fmt.Errorf("content and source options are incompatible")
 	}
 
-	if !hasContent && !hasSource {
-		return "", fmt.Errorf("content or source options must be present")
-	}
-
-	var keyFile types.Resource
-	if hasContent {
-		s := encodeDataURL(
-			d.Get("content.0.mime").(string),
-			d.Get("content.0.content").(string),
-		)
-		keyFile.Source = &s
-	}
-
-	if hasSource {
-		src := d.Get("source.0.source").(string)
-		if src != "" {
-			keyFile.Source = &src
+	if hasContent || hasSource {
+		var keyFile types.Resource
+		if hasContent {
+			s := encodeDataURL(
+				d.Get("content.0.mime").(string),
+				d.Get("content.0.content").(string),
+			)
+			keyFile.Source = &s
 		}
-		compression := d.Get("source.0.compression").(string)
-		if compression != "" {
-			keyFile.Compression = &compression
-		}
-		h := d.Get("source.0.verification").(string)
-		if h != "" {
-			keyFile.Verification.Hash = &h
-		}
-	}
 
-	luks.KeyFile = keyFile
+		if hasSource {
+			src := d.Get("source.0.source").(string)
+			if src != "" {
+				keyFile.Source = &src
+			}
+			compression := d.Get("source.0.compression").(string)
+			if compression != "" {
+				keyFile.Compression = &compression
+			}
+			h := d.Get("source.0.verification").(string)
+			if h != "" {
+				keyFile.Verification.Hash = &h
+			}
+			for _, raw := range d.Get("source.0.http_headers").([]interface{}) {
+				v := raw.(map[string]interface{})
+				p := types.HTTPHeader{
+					Name: v["name"].(string),
+				}
 
-	for _, value := range d.Get("options").([]interface{}) {
-		luks.Options = append(luks.Options, value.(types.LuksOption))
+				value := v["value"]
+				if value != nil {
+					svalue := value.(string)
+					p.Value = &svalue
+				}
+
+				keyFile.HTTPHeaders = append(keyFile.HTTPHeaders, p)
+			}
+		}
+
+		luks.KeyFile = keyFile
 	}
 
 	_, hasClevis := d.GetOk("clevis")
@@ -301,6 +330,10 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 		}
 
 		luks.Clevis = &clevis
+	}
+
+	for _, value := range d.Get("options").([]interface{}) {
+		luks.Options = append(luks.Options, value.(types.LuksOption))
 	}
 
 	if err := handleReport(luks.Validate(path.ContextPath{})); err != nil {
