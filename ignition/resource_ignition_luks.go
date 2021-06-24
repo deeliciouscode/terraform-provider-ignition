@@ -244,26 +244,26 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 		var keyFile types.Resource
 		if hasInline {
 			s := encodeDataURL(
-				d.Get("content.0.mime").(string),
-				d.Get("content.0.content").(string),
+				d.Get("inline_key_file.0.mime").(string),
+				d.Get("inline_key_file.0.content").(string),
 			)
 			keyFile.Source = &s
 		}
 
 		if hasRemote {
-			src := d.Get("source.0.source").(string)
+			src := d.Get("remote_key_file.0.source").(string)
 			if src != "" {
 				keyFile.Source = &src
 			}
-			compression := d.Get("source.0.compression").(string)
+			compression := d.Get("remote_key_file.0.compression").(string)
 			if compression != "" {
 				keyFile.Compression = &compression
 			}
-			h := d.Get("source.0.verification").(string)
+			h := d.Get("remote_key_file.0.verification").(string)
 			if h != "" {
 				keyFile.Verification.Hash = &h
 			}
-			for _, raw := range d.Get("source.0.http_headers").([]interface{}) {
+			for _, raw := range d.Get("remote_key_file.0.http_headers").([]interface{}) {
 				v := raw.(map[string]interface{})
 				p := types.HTTPHeader{
 					Name: v["name"].(string),
