@@ -26,7 +26,7 @@ func dataSourceLuks() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"content": {
+			"inline_key_file": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -48,7 +48,7 @@ func dataSourceLuks() *schema.Resource {
 					},
 				},
 			},
-			"source": {
+			"remote_key_file": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -57,7 +57,7 @@ func dataSourceLuks() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"source": {
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 						"compression": {
@@ -128,24 +128,24 @@ func dataSourceLuks() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"url": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 										ForceNew: true,
 									},
 									"thumbprint": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 										ForceNew: true,
 									},
 								},
 							},
 						},
 						"tpm2": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeBool,
 							Optional: true,
 							ForceNew: true,
 						},
 						"treshold": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
@@ -158,12 +158,12 @@ func dataSourceLuks() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"pin": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 										ForceNew: true,
 									},
 									"config": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 										ForceNew: true,
 									},
 									"needs_network": {
@@ -233,16 +233,16 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 		luks.WipeVolume = &bwipeVol
 	}
 
-	_, hasContent := d.GetOk("content")
-	_, hasSource := d.GetOk("source")
+	_, hasInline := d.GetOk("inline_key_file")
+	_, hasRemote := d.GetOk("remote_key_file")
 
-	if hasContent && hasSource {
-		return "", fmt.Errorf("content and source options are incompatible")
+	if hasInline && hasRemote {
+		return "", fmt.Errorf("inline and remote options are incompatible.")
 	}
 
-	if hasContent || hasSource {
+	if hasInline || hasRemote {
 		var keyFile types.Resource
-		if hasContent {
+		if hasInline {
 			s := encodeDataURL(
 				d.Get("content.0.mime").(string),
 				d.Get("content.0.content").(string),
@@ -250,7 +250,7 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 			keyFile.Source = &s
 		}
 
-		if hasSource {
+		if hasRemote {
 			src := d.Get("source.0.source").(string)
 			if src != "" {
 				keyFile.Source = &src
