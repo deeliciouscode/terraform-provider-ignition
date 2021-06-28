@@ -304,9 +304,8 @@ func buildLuks(d *schema.ResourceData) (string, error) {
 				URL: v["url"].(string),
 			}
 
-			thumbprint, hasThumbprint := d.GetOk("clevis.0.tang.thumbprint")
-			if hasThumbprint {
-				sthumbprint := thumbprint.(string)
+			sthumbprint := v["thumbprint"].(string)
+			if sthumbprint != "" {
 				p.Thumbprint = &sthumbprint
 			}
 
